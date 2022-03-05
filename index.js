@@ -1,5 +1,4 @@
 'use strict'
-
 /**
  * static files (404.html, sw.js, conf.js)
  */
@@ -10,7 +9,6 @@ const PREFIX = '/'
 const Config = {
     jsdelivr: 1
 }
-
 /** @type {RequestInit} */
 const PREFLIGHT_INIT = {
     status: 204,
@@ -20,15 +18,12 @@ const PREFLIGHT_INIT = {
         'access-control-max-age': '1728000',
     }),
 }
-
-
 const exp1 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:releases|archive)\/.*$/i
 const exp2 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:blob|raw)\/.*$/i
 const exp3 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/(?:info|git-).*$/i
 const exp4 = /^(?:https?:\/\/)?raw\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+?\/.+$/i
 const exp5 = /^(?:https?:\/\/)?gist\.(?:githubusercontent|github)\.com\/.+?\/.+?\/.+$/i
 const exp6 = /^(?:https?:\/\/)?github\.com\/.+?\/.+?\/tags.*$/i
-
 /**
  * @param {any} body
  * @param {number} status
@@ -38,8 +33,6 @@ function makeRes(body, status = 200, headers = {}) {
     headers['access-control-allow-origin'] = '*'
     return new Response(body, {status, headers})
 }
-
-
 /**
  * @param {string} urlStr
  */
@@ -50,15 +43,11 @@ function newUrl(urlStr) {
         return null
     }
 }
-
-
 addEventListener('fetch', e => {
     const ret = fetchHandler(e)
         .catch(err => makeRes('cfworker error:\n' + err.stack, 502))
     e.respondWith(ret)
 })
-
-
 function checkUrl(u) {
     for (let i of [exp1, exp2, exp3, exp4, exp5, exp6]) {
         if (u.search(i) === 0) {
@@ -67,7 +56,6 @@ function checkUrl(u) {
     }
     return false
 }
-
 /**
  * @param {FetchEvent} e
  */
@@ -98,30 +86,24 @@ async function fetchHandler(e) {
         return fetch(ASSET_URL + path)
     }
 }
-
-
 /**
  * @param {Request} req
  * @param {string} pathname
  */
 function httpHandler(req, pathname) {
     const reqHdrRaw = req.headers
-
     // preflight
     if (req.method === 'OPTIONS' &&
         reqHdrRaw.has('access-control-request-headers')
     ) {
         return new Response(null, PREFLIGHT_INIT)
     }
-
     const reqHdrNew = new Headers(reqHdrRaw)
-
     let urlStr = pathname
     if (urlStr.startsWith('github')) {
         urlStr = 'https://' + urlStr
     }
     const urlObj = newUrl(urlStr)
-
     /** @type {RequestInit} */
     const reqInit = {
         method: req.method,
@@ -131,8 +113,6 @@ function httpHandler(req, pathname) {
     }
     return proxy(urlObj, reqInit)
 }
-
-
 /**
  *
  * @param {URL} urlObj
@@ -142,9 +122,7 @@ async function proxy(urlObj, reqInit) {
     const res = await fetch(urlObj.href, reqInit)
     const resHdrOld = res.headers
     const resHdrNew = new Headers(resHdrOld)
-
     const status = res.status
-
     if (resHdrNew.has('location')) {
         let _location = resHdrNew.get('location')
         if (checkUrl(_location))
@@ -156,14 +134,11 @@ async function proxy(urlObj, reqInit) {
     }
     resHdrNew.set('access-control-expose-headers', '*')
     resHdrNew.set('access-control-allow-origin', '*')
-
     resHdrNew.delete('content-security-policy')
     resHdrNew.delete('content-security-policy-report-only')
     resHdrNew.delete('clear-site-data')
-
     return new Response(res.body, {
         status,
         headers: resHdrNew,
     })
 }
-
